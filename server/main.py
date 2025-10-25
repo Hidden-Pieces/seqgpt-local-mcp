@@ -1,5 +1,5 @@
-"""General Purpose MCP Server
-Tools: create_scatter_plot
+"""SeqGPT Local MCP Server
+Tools: upload_file, generate_data_table
 Resource: hello://helper
 
 Usage:
@@ -11,10 +11,94 @@ from __future__ import annotations
 import os
 import random
 import tempfile
+import urllib.request
+import urllib.parse
+import urllib.error
 from mcp.server.fastmcp import FastMCP
 
 
 mcp = FastMCP("seqgpt-local-mcp")
+
+
+@mcp.tool(title="Upload File", description="Upload a file to the local server at localhost:8000/upload")
+def upload_file(
+    file_path: str,
+    server_url: str = "http://localhost:8000/upload"
+) -> dict:
+    """
+    Upload a file to the local server.
+    
+    Args:
+        file_path: Path to the file to upload
+        server_url: URL of the upload endpoint (default: http://localhost:8000/upload)
+    
+    Returns:
+        Dictionary containing the upload response
+    """
+    try:
+        if not os.path.exists(file_path):
+            return {
+                "success": False,
+                "error": f"File not found: {file_path}"
+            }
+        
+        # Read the file
+        with open(file_path, 'rb') as file:
+            file_data = file.read()
+        
+        # Get filename from path
+        filename = os.path.basename(file_path)
+        
+        # Create multipart form data
+        boundary = '----WebKitFormBoundary' + ''.join([str(random.randint(0, 9)) for _ in range(16)])
+        
+        # Build the multipart body
+        body_parts = []
+        body_parts.append(f'--{boundary}'.encode())
+        body_parts.append(f'Content-Disposition: form-data; name="file"; filename="{filename}"'.encode())
+        body_parts.append(b'Content-Type: application/octet-stream')
+        body_parts.append(b'')
+        body_parts.append(file_data)
+        body_parts.append(f'--{boundary}--'.encode())
+        
+        body = b'\r\n'.join(body_parts)
+        
+        # Create request
+        req = urllib.request.Request(
+            server_url,
+            data=body,
+            method='POST'
+        )
+        req.add_header('Content-Type', f'multipart/form-data; boundary={boundary}')
+        req.add_header('Content-Length', str(len(body)))
+        
+        # Make the request
+        with urllib.request.urlopen(req, timeout=30) as response:
+            response_data = response.read().decode('utf-8')
+            
+        return {
+            "success": True,
+            "status_code": response.status,
+            "response": response_data,
+            "file_path": file_path,
+            "server_url": server_url
+        }
+    except urllib.error.HTTPError as e:
+        return {
+            "success": False,
+            "error": f"HTTP error {e.code}: {e.reason}",
+            "status_code": e.code
+        }
+    except urllib.error.URLError as e:
+        return {
+            "success": False,
+            "error": f"URL error: {str(e.reason)}"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Upload failed: {str(e)}"
+        }
 
 
 @mcp.tool(title="Generate Data Table", description="Generate a data table with random values")
@@ -60,7 +144,7 @@ def generate_data_table(
 
 @mcp.resource("hello://helper", title="Hello resource")
 def hello() -> str:
-    return "Hello from Helper MCP! I can create scatter plots and data tables."
+    return "Hello from SeqGPT Local MCP! I can upload files and generate data tables."
 
 
 def main() -> None:

@@ -1,2 +1,3 @@
 .venv
 seqgpt-local-mcp.mcpb
+__pycache__
