@@ -1,0 +1,1 @@
+# seqgpt-local-mcp
