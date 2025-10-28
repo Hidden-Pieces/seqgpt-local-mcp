@@ -31,6 +31,11 @@ Install mcp as a package into `server/lib/` folder
 python3 -m pip install -t server/lib "mcp>=1.0.0"
 ```
 
+or maybe
+```bash
+python3 -m pip install -t server/lib -r requirements.txt
+```
+
 ```bash
 npx @anthropic-ai/mcpb pack
 ```

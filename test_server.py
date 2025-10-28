@@ -19,7 +19,7 @@ from pathlib import Path
 # Add the server directory to the path so we can import the main module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'server'))
 
-from main import upload_file, hello, create_random_csv, csv_sql_query, preview_csv
+from main import upload_file, hello, create_random_csv, csv_sql_query, preview_csv, csv_to_vcf, gwas_plink
 
 # Global server URL - defaults to remote, can be overridden with --local flag
 SERVER_BASE_URL = "https://seqgpt-server-for-mcp-761250691807.us-central1.run.app"
@@ -278,6 +278,88 @@ class TestSeqGPTMCP(unittest.TestCase):
             print(f"❌ Create CSV and query integration test failed: {query_result.get('error', 'Unknown error')}")
             print("💡 Make sure your server is running on both endpoints")
             self.fail(f"Create CSV and query integration test failed: {query_result.get('error', 'Unknown error')}")
+    
+    def test_csv_to_vcf(self):
+        """Test the csv_to_vcf tool"""
+        print(f"Note: Make sure your server is running on {SERVER_BASE_URL}/csv-to-vcf")
+        
+        # Test with a sample GCS URL
+        test_gcs_url = "gs://test-bucket/data/sample.csv"
+        
+        result = csv_to_vcf(
+            gcs_url=test_gcs_url,
+            output_filename="test_output.vcf",
+            server_url=f"{SERVER_BASE_URL}/csv-to-vcf"
+        )
+        
+        self.assertIsInstance(result, dict)
+        self.assertIn("success", result)
+        self.assertIn("server_url", result)
+        self.assertIn("gcs_url", result)
+        self.assertIn("output_filename", result)
+        
+        print(f"CSV to VCF result: {json.dumps(result, indent=2)}")
+        
+        if result.get('success'):
+            print("✅ CSV to VCF test passed!")
+        else:
+            print(f"❌ CSV to VCF test failed: {result.get('error', 'Unknown error')}")
+            print(f"💡 Make sure your server is running on {SERVER_BASE_URL}/csv-to-vcf")
+            self.fail(f"CSV to VCF test failed: {result.get('error', 'Unknown error')}")
+    
+    def test_gwas_plink(self):
+        """Test the gwas_plink tool"""
+        print(f"Note: Make sure your server is running on {SERVER_BASE_URL}/gwas-plink")
+        
+        # Test with a sample GCS URL
+        test_gcs_url = "gs://test-bucket/data/sample.csv"
+        
+        result = gwas_plink(
+            gcs_url=test_gcs_url,
+            output_filename="test_gwas_results.glm.linear",
+            server_url=f"{SERVER_BASE_URL}/gwas-plink"
+        )
+        
+        self.assertIsInstance(result, dict)
+        self.assertIn("success", result)
+        self.assertIn("server_url", result)
+        self.assertIn("gcs_url", result)
+        self.assertIn("output_filename", result)
+        
+        print(f"GWAS PLINK result: {json.dumps(result, indent=2)}")
+        
+        if result.get('success'):
+            print("✅ GWAS PLINK test passed!")
+        else:
+            print(f"❌ GWAS PLINK test failed: {result.get('error', 'Unknown error')}")
+            print(f"💡 Make sure your server is running on {SERVER_BASE_URL}/gwas-plink")
+            self.fail(f"GWAS PLINK test failed: {result.get('error', 'Unknown error')}")
+    
+    def test_csv_to_vcf_invalid_url(self):
+        """Test csv_to_vcf with invalid GCS URL"""
+        result = csv_to_vcf(
+            gcs_url="invalid-url",
+            output_filename="test.vcf",
+            server_url=f"{SERVER_BASE_URL}/csv-to-vcf"
+        )
+        
+        self.assertIsInstance(result, dict)
+        self.assertFalse(result.get('success', True))
+        self.assertIn("error", result)
+        self.assertIn("Invalid GCS URL", result["error"])
+    
+    def test_gwas_plink_invalid_url(self):
+        """Test gwas_plink with invalid GCS URL"""
+        result = gwas_plink(
+            gcs_url="invalid-url",
+            output_filename="test.glm.linear",
+            server_url=f"{SERVER_BASE_URL}/gwas-plink"
+        )
+        
+        self.assertIsInstance(result, dict)
+        self.assertFalse(result.get('success', True))
+        self.assertIn("error", result)
+        self.assertIn("Invalid GCS URL", result["error"])
 
 def main():
     """Run all tests"""

@@ -1,5 +1,5 @@
 """SeqGPT Local MCP Server
-Tools: upload_file, create_random_csv, csv_sql_query, preview_csv
+Tools: upload_file, create_random_csv, csv_sql_query, preview_csv, csv_to_vcf, gwas_plink
 Resource: hello://helper
 
 Usage:
@@ -363,6 +363,168 @@ def preview_csv(
         return {
             "success": False,
             "error": f"Preview CSV failed: {str(e)}",
+            "server_url": server_url,
+            "gcs_url": gcs_url
+        }
+
+
+@mcp.tool(title="CSV to VCF", description="Convert CSV file to VCF format using the server endpoint")
+def csv_to_vcf(
+    gcs_url: str,
+    output_filename: str | None = None,
+    server_url: str | None = None
+) -> dict:
+    """
+    Convert CSV file to VCF format.
+    
+    Args:
+        gcs_url: GCS URL of the CSV file to convert
+        output_filename: Name for the output VCF file (optional, auto-generated if not provided)
+        server_url: URL of the csv-to-vcf endpoint (defaults to SERVER_BASE_URL/csv-to-vcf)
+    
+    Returns:
+        Dictionary containing the conversion results
+    """
+    try:
+        if server_url is None:
+            server_url = f"{SERVER_BASE_URL}/csv-to-vcf"
+        if not gcs_url.startswith("gs://"):
+            raise ValueError("Invalid GCS URL")
+        filename = gcs_url.split("gs://")[-1]
+        _, filename = filename.split("/", 1)  # Remove bucket name
+        
+        # Prepare the request data
+        data = {
+            "input_file_path": filename
+        }
+        
+        if output_filename:
+            data["output_filename"] = output_filename
+        
+        # Convert to JSON
+        json_data = json.dumps(data).encode('utf-8')
+        
+        # Create request
+        req = urllib.request.Request(
+            server_url,
+            data=json_data,
+            method='POST'
+        )
+        req.add_header('Content-Type', 'application/json')
+        req.add_header('Content-Length', str(len(json_data)))
+        
+        # Make the request
+        with urllib.request.urlopen(req, timeout=30) as response:
+            response_data = response.read().decode('utf-8')
+            
+        return {
+            "success": True,
+            "status_code": response.status,
+            "response": response_data,
+            "server_url": server_url,
+            "gcs_url": gcs_url,
+            "output_filename": output_filename
+        }
+    except urllib.error.HTTPError as e:
+        return {
+            "success": False,
+            "error": f"HTTP error {e.code}: {e.reason}",
+            "status_code": e.code,
+            "server_url": server_url,
+            "gcs_url": gcs_url
+        }
+    except urllib.error.URLError as e:
+        return {
+            "success": False,
+            "error": f"URL error: {str(e.reason)}",
+            "server_url": server_url,
+            "gcs_url": gcs_url
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"CSV to VCF conversion failed: {str(e)}",
+            "server_url": server_url,
+            "gcs_url": gcs_url
+        }
+
+
+@mcp.tool(title="GWAS PLINK Analysis", description="Run GWAS analysis using PLINK on CSV data using the server endpoint")
+def gwas_plink(
+    gcs_url: str,
+    output_filename: str | None = None,
+    server_url: str | None = None
+) -> dict:
+    """
+    Run GWAS analysis using PLINK on CSV data.
+    
+    Args:
+        gcs_url: GCS URL of the CSV file to analyze
+        output_filename: Name for the output GWAS results file (optional, auto-generated if not provided)
+        server_url: URL of the gwas-plink endpoint (defaults to SERVER_BASE_URL/gwas-plink)
+    
+    Returns:
+        Dictionary containing the GWAS analysis results
+    """
+    try:
+        if server_url is None:
+            server_url = f"{SERVER_BASE_URL}/gwas-plink"
+        if not gcs_url.startswith("gs://"):
+            raise ValueError("Invalid GCS URL")
+        filename = gcs_url.split("gs://")[-1]
+        _, filename = filename.split("/", 1)  # Remove bucket name
+        
+        # Prepare the request data
+        data = {
+            "input_file_path": filename
+        }
+        
+        if output_filename:
+            data["output_filename"] = output_filename
+        
+        # Convert to JSON
+        json_data = json.dumps(data).encode('utf-8')
+        
+        # Create request
+        req = urllib.request.Request(
+            server_url,
+            data=json_data,
+            method='POST'
+        )
+        req.add_header('Content-Type', 'application/json')
+        req.add_header('Content-Length', str(len(json_data)))
+        
+        # Make the request
+        with urllib.request.urlopen(req, timeout=30) as response:
+            response_data = response.read().decode('utf-8')
+            
+        return {
+            "success": True,
+            "status_code": response.status,
+            "response": response_data,
+            "server_url": server_url,
+            "gcs_url": gcs_url,
+            "output_filename": output_filename
+        }
+    except urllib.error.HTTPError as e:
+        return {
+            "success": False,
+            "error": f"HTTP error {e.code}: {e.reason}",
+            "status_code": e.code,
+            "server_url": server_url,
+            "gcs_url": gcs_url
+        }
+    except urllib.error.URLError as e:
+        return {
+            "success": False,
+            "error": f"URL error: {str(e.reason)}",
+            "server_url": server_url,
+            "gcs_url": gcs_url
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"GWAS PLINK analysis failed: {str(e)}",
             "server_url": server_url,
             "gcs_url": gcs_url
         }
