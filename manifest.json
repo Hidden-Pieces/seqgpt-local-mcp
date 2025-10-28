@@ -14,10 +14,8 @@
     "type": "python",
     "entry_point": "server/main.py",
     "mcp_config": {
-      "command": "${__dirname}/.venv/bin/python",
-      "args": [
-        "${__dirname}/server/main.py"
-      ],
+      "command": "python3",
+      "args": ["-I", "-s", "${__dirname}/server/main.py"],
       "env": {
         "PYTHONPATH": "${__dirname}/server/lib"
       }
